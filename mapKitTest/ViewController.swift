@@ -9,6 +9,7 @@
 import UIKit
 import MapKit
 import CoreGraphics
+import CoreLocation
 
 //MARK: Global Declarations
 let chicagoCoordinate = CLLocationCoordinate2DMake(49.0537455, 9.289637699999957)// 0,0 Chicago street coordinates
@@ -25,6 +26,21 @@ extension ViewController: CLLocationManagerDelegate {
         
         self.outputCurrentLocationCoordinates.text = "Koordinaten: \(coordiantens.latitude) \(coordiantens.longitude)"
          mapView.centerCoordinate = coordiantens
+        
+        guard let pointsSave = points else {
+            return
+        }
+        
+        let polygonRenderer = MKPolygonRenderer(polygon: MKPolygon(coordinates: pointsSave, count: pointsSave.count))
+        let currentMapPoint: MKMapPoint = MKMapPointForCoordinate(chicagoCoordinate)
+        let polygonViewPoint: CGPoint = polygonRenderer.point(for: currentMapPoint)
+        
+        
+        if polygonRenderer.path.contains(polygonViewPoint) {
+            outputLocationIn.text = "\(String(describing: outputLocationIn.text)) 1"
+        } else {
+            outputLocationIn.text = "\(String(describing: outputLocationIn.text)) 2"
+        }
     }
 }
 
@@ -35,7 +51,7 @@ class ViewController: UIViewController, MKMapViewDelegate {
     @IBOutlet weak var mapView: MKMapView!
     
     var locationManager = CLLocationManager()
-    var points = [CLLocationCoordinate2D]()
+    var points: [CLLocationCoordinate2D]?
     
     required init?(coder aDecoder: NSCoder) {
         locationManager = CLLocationManager()
@@ -70,14 +86,19 @@ class ViewController: UIViewController, MKMapViewDelegate {
     }
     
     @IBAction func overlay(_ sender: Any) {
-        mapView.add(MKPolygon(coordinates: points, count: points.count))
+        guard let pointsSave = points else {
+            return
+        }
+        mapView.add(MKPolygon(coordinates: pointsSave, count: pointsSave.count))
         print("overlay")
     }
     
     @IBAction func removeOverlays(_ sender: Any) {
         let overlays = mapView.overlays
         mapView.removeOverlays(overlays)
-        points.removeAll()
+        if points != nil {
+            points!.removeAll()
+        }
         let anninotations = mapView.annotations
         mapView.removeAnnotations(anninotations)
     }
@@ -90,7 +111,10 @@ class ViewController: UIViewController, MKMapViewDelegate {
     }
     
     @IBAction func checkPoint(_ sender: Any) {
-        let polygonRenderer = MKPolygonRenderer(polygon: MKPolygon(coordinates: &points, count: points.count))
+        guard let pointsSave = points else {
+            return
+        }
+        let polygonRenderer = MKPolygonRenderer(polygon: MKPolygon(coordinates: pointsSave, count: pointsSave.count))
         let currentMapPoint: MKMapPoint = MKMapPointForCoordinate(chicagoCoordinate)
         let polygonViewPoint: CGPoint = polygonRenderer.point(for: currentMapPoint)
         
@@ -107,7 +131,7 @@ class ViewController: UIViewController, MKMapViewDelegate {
         let locationCoordinate = mapView.convert(touchLocation, toCoordinateFrom: mapView)
         
         // Daten ins Array schreiben
-        points.append(CLLocationCoordinate2DMake(locationCoordinate.latitude, locationCoordinate.longitude))
+        points?.append(CLLocationCoordinate2DMake(locationCoordinate.latitude, locationCoordinate.longitude))
         mapView.addAnnotation(createAnnotationPin(coors: locationCoordinate))
     }
     
